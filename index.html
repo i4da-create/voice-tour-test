@@ -38,12 +38,12 @@
   <h3>スタンプカード</h3>
   <ul id="spotList" class="spot-list">
     </ul>
-  <p class="revision">Rev. 6 (Robust GPS)</p>
+  <p class="revision">バージョン7(Robust GPS)</p>
 </div>
 
 <script>
 // ★音声ファイルの準備★
-const soundEffect = new Audio('spot1.mp3');
+const soundEffect = new Audio('下田谷公園.mp3');
 
 // ★設定エリア★
 const spots = [
@@ -116,7 +116,7 @@ function success(position) {
     const dist = getDistance(currentLat, currentLng, spot.lat, spot.lng);
     const distToArea = dist - RADIUS;
 
-    if (distToArea <= 0) {
+   // if (distToArea <= 0) {
       spot.cleared = true;
       isJustCleared = true;
       
@@ -127,13 +127,14 @@ function success(position) {
         `<div class='success-msg'>🎉 ${spot.name}<br>スタンプゲット！</div>`;
       
       updateList();
-    } else {
-      if (distToArea < nearestDist) {
-        nearestDist = distToArea;
-        nearestName = spot.name;
-      }
-    }
-  });
+    //} else {
+      //if (distToArea < nearestDist) {
+        //nearestDist = distToArea;
+        //nearestName = spot.name;
+      //}
+    //}
+ // });
+  
 
   // 2. 画面表示
   if (!isJustCleared) {
