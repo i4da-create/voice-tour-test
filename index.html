@@ -54,7 +54,7 @@ const spots = [
   { name: "② 北のスポット", lat: 34.8344, lng: 134.6934, cleared: false } 
 ];
 
-const RADIUS = 50; // 半径50m
+const RADIUS = 5000; // 半径50m
 let watchId = null; // GPS監視ID
 
 function startTour() {
@@ -127,13 +127,13 @@ function success(position) {
         `<div class='success-msg'>🎉 ${spot.name}<br>スタンプゲット！</div>`;
       
       updateList();
-    //} else {
-      //if (distToArea < nearestDist) {
-        //nearestDist = distToArea;
-        //nearestName = spot.name;
-      //}
-    //}
- // });
+    } else {
+      if (distToArea < nearestDist) {
+        nearestDist = distToArea;
+        nearestName = spot.name;
+      }
+    }
+ });
   
 
   // 2. 画面表示
