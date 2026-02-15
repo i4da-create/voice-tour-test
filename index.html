@@ -5,188 +5,187 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>スタンプラリー堅牢版</title>
 <style>
-  body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f0f8ff; }
-  .card { background: white; padding: 20px; margin: 10px auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 400px; }
-  h1 { color: #333; }
-  button { font-size: 1.2em; padding: 10px 20px; background-color: #ff6347; color: white; border: none; border-radius: 5px; cursor: pointer; }
-  button:disabled { background-color: #ccc; cursor: not-allowed; }
-  
-  #status { margin-top: 20px; font-weight: bold; min-height: 1.5em; line-height: 1.6; }
-  .error-msg { color: red; font-size: 0.9em; margin-top: 10px; background: #ffe6e6; padding: 10px; border-radius: 5px; }
-  
-  /* 距離表示 */
-  .distance-info { color: #007bff; font-size: 1.1em; margin-top: 5px; }
-  .success-msg { color: red; font-size: 1.2em; font-weight: bold; animation: pop 0.5s ease; }
-  @keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1.0); } }
-  
-  .revision { font-size: 10px; color: #aaa; margin-top: 20px; }
+body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f0f8ff; }
+.card { background: white; padding: 20px; margin: 10px auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 400px; }
+h1 { color: #333; }
+button { font-size: 1.2em; padding: 10px 20px; background-color: #ff6347; color: white; border: none; border-radius: 5px; cursor: pointer; }
+button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+#status { margin-top: 20px; font-weight: bold; min-height: 1.5em; line-height: 1.6; }
+.error-msg { color: red; font-size: 0.9em; margin-top: 10px; background: #ffe6e6; padding: 10px; border-radius: 5px; }
+
+/* 距離表示 */
+.distance-info { color: #007bff; font-size: 1.1em; margin-top: 5px; }
+.success-msg { color: red; font-size: 1.2em; font-weight: bold; animation: pop 0.5s ease; }
+@keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1.0); } }
+
+.revision { font-size: 10px; color: #aaa; margin-top: 20px; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h1>🗺️ 音声スタンプラリー</h1>
-  <p>あと何mで到着するか<br>ナビゲーションします</p>
-  
-  <button id="btnStart" onclick="startTour()">ツアーを開始</button>
-  
-  <div id="status">ボタンを押してください</div>
-  <div id="debugLog"></div>
+<h1>🗺️ 音声スタンプラリー</h1>
+<p>あと何mで到着するか<br>ナビゲーションします</p>
+
+<button id="btnStart" onclick="startTour()">ツアーを開始</button>
+
+<div id="status">ボタンを押してください</div>
+<div id="debugLog"></div>
 </div>
 
 <div class="card">
-  <h3>スタンプカード</h3>
-  <ul id="spotList" class="spot-list">
-    </ul>
-  <p class="revision">バージョン7(Robust GPS)</p>
+<h3>スタンプカード</h3>
+<ul id="spotList" class="spot-list">
+</ul>
+<p class="revision">Rev. 6 (Robust GPS)</p>
 </div>
 
 <script>
 // ★音声ファイルの準備★
-const soundEffect = new Audio('下田谷公園.mp3');
+const soundEffect = new Audio('spot1.mp3');
 
 // ★設定エリア★
 const spots = [
-  // 1. 指定のテスト地点
-  { name: "① テスト地点", lat: 34.8397, lng: 134.6776, cleared: false },
-  
-  // 2. 北にある架空のスポット
-  { name: "② 北のスポット", lat: 34.8344, lng: 134.6934, cleared: false } 
+// 1. 指定のテスト地点
+{ name: "① テスト地点", lat: 34.554612039952275, lng: 134.99875810362352, cleared: false },
+
+// 2. 北にある架空のスポット
+{ name: "② 北のスポット", lat: 34.8344, lng: 134.6934, cleared: false }
 ];
 
 const RADIUS = 5000; // 半径50m
 let watchId = null; // GPS監視ID
 
 function startTour() {
-  if (!navigator.geolocation) {
-    alert("この端末はGPS非対応です");
-    return;
-  }
+if (!navigator.geolocation) {
+alert("この端末はGPS非対応です");
+return;
+}
 
-  // ボタンを一時的に無効化
-  const btn = document.getElementById("btnStart");
-  btn.disabled = true;
-  btn.innerText = "起動中...";
+// ボタンを一時的に無効化
+const btn = document.getElementById("btnStart");
+btn.disabled = true;
+btn.innerText = "起動中...";
 
-  // 音声アンロック
-  soundEffect.play().then(() => {
-      soundEffect.pause();
-      soundEffect.currentTime = 0;
-  }).catch(e => {
-      // エラーでも止まらないようにする
-      console.log("Audio unlock failed", e);
-  });
+// 音声アンロック
+soundEffect.play().then(() => {
+soundEffect.pause();
+soundEffect.currentTime = 0;
+}).catch(e => {
+// エラーでも止まらないようにする
+console.log("Audio unlock failed", e);
+});
 
-  document.getElementById("status").innerText = "📡 GPS信号を探しています...";
-  document.getElementById("debugLog").innerHTML = ""; // エラー消去
+document.getElementById("status").innerText = "📡 GPS信号を探しています...";
+document.getElementById("debugLog").innerHTML = ""; // エラー消去
 
-  // 以前の監視があればクリア
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-  }
+// 以前の監視があればクリア
+if (watchId !== null) {
+navigator.geolocation.clearWatch(watchId);
+}
 
-  // GPS開始（オプションを緩めてタイムアウトしにくく設定）
-  watchId = navigator.geolocation.watchPosition(success, error, {
-    enableHighAccuracy: true, // 高精度
-    timeout: 30000,           // ★変更：30秒待つ（以前は10秒）
-    maximumAge: 5000          // ★変更：5秒以内の古いデータも許容
-  });
-  
-  updateList();
+// GPS開始（オプションを緩めてタイムアウトしにくく設定）
+watchId = navigator.geolocation.watchPosition(success, error, {
+enableHighAccuracy: true, // 高精度
+timeout: 30000, // ★変更：30秒待つ（以前は10秒）
+maximumAge: 5000 // ★変更：5秒以内の古いデータも許容
+});
+
+updateList();
 }
 
 function success(position) {
-  // 成功したらボタンを「再起動」表記に戻して押せるようにする
-  const btn = document.getElementById("btnStart");
-  btn.innerText = "GPS再起動";
-  btn.disabled = false;
+// 成功したらボタンを「再起動」表記に戻して押せるようにする
+const btn = document.getElementById("btnStart");
+btn.innerText = "GPS再起動";
+btn.disabled = false;
 
-  const currentLat = position.coords.latitude;
-  const currentLng = position.coords.longitude;
-  const accuracy = position.coords.accuracy; // 誤差(m)
+const currentLat = position.coords.latitude;
+const currentLng = position.coords.longitude;
+const accuracy = position.coords.accuracy; // 誤差(m)
 
-  // 1. 各スポットとの距離計算
-  let nearestDist = Infinity;
-  let nearestName = "";
-  let isJustCleared = false;
+// 1. 各スポットとの距離計算
+let nearestDist = Infinity;
+let nearestName = "";
+let isJustCleared = false;
 
-  spots.forEach((spot) => {
-    if (spot.cleared) return;
+spots.forEach((spot) => {
+if (spot.cleared) return;
 
-    const dist = getDistance(currentLat, currentLng, spot.lat, spot.lng);
-    const distToArea = dist - RADIUS;
+const dist = getDistance(currentLat, currentLng, spot.lat, spot.lng);
+const distToArea = dist - RADIUS;
 
-   // if (distToArea <= 0) {
-      spot.cleared = true;
-      isJustCleared = true;
-      
-      soundEffect.currentTime = 0;
-      soundEffect.play().catch(e => console.log(e));
+if (distToArea <= 0) {
+spot.cleared = true;
+isJustCleared = true;
 
-      document.getElementById("status").innerHTML = 
-        `<div class='success-msg'>🎉 ${spot.name}<br>スタンプゲット！</div>`;
-      
-      updateList();
-    } else {
-      if (distToArea < nearestDist) {
-        nearestDist = distToArea;
-        nearestName = spot.name;
-      }
-    }
- });
-  
+soundEffect.currentTime = 0;
+soundEffect.play().catch(e => console.log(e));
 
-  // 2. 画面表示
-  if (!isJustCleared) {
-    let statusHTML = `📍 現在地 (誤差±${Math.floor(accuracy)}m)<br><span style="font-size:0.8em">${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}</span>`;
-    
-    if (nearestName !== "") {
-      statusHTML += `<div class="distance-info">🏃‍♂️ 次の ${nearestName} まで<br>あと <b>${Math.ceil(nearestDist)}m</b></div>`;
-    } else {
-      statusHTML += `<div class="distance-info">🎉 全スポットコンプリート！</div>`;
-    }
-    
-    document.getElementById("status").innerHTML = statusHTML;
-  }
+document.getElementById("status").innerHTML =
+`<div class='success-msg'>🎉 ${spot.name}<br>スタンプゲット！</div>`;
+
+updateList();
+} else {
+if (distToArea < nearestDist) {
+nearestDist = distToArea;
+nearestName = spot.name;
+}
+}
+});
+
+// 2. 画面表示
+if (!isJustCleared) {
+let statusHTML = `📍 現在地 (誤差±${Math.floor(accuracy)}m)<br><span style="font-size:0.8em">${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}</span>`;
+
+if (nearestName !== "") {
+statusHTML += `<div class="distance-info">🏃‍♂️ 次の ${nearestName} まで<br>あと <b>${Math.ceil(nearestDist)}m</b></div>`;
+} else {
+statusHTML += `<div class="distance-info">🎉 全スポットコンプリート！</div>`;
+}
+
+document.getElementById("status").innerHTML = statusHTML;
+}
 }
 
 function error(err) {
-  const btn = document.getElementById("btnStart");
-  btn.innerText = "再試行する";
-  btn.disabled = false;
+const btn = document.getElementById("btnStart");
+btn.innerText = "再試行する";
+btn.disabled = false;
 
-  let msg = "";
-  switch(err.code) {
-    case 1: msg = "位置情報の利用が許可されていません。\nブラウザの設定を確認してください。"; break;
-    case 2: msg = "電波状況が悪く、位置が特定できませんでした。\n窓際や屋外で試してください。"; break;
-    case 3: msg = "タイムアウトしました。\n（制限時間内に位置が見つかりませんでした）"; break;
-    default: msg = "不明なエラー: " + err.message;
-  }
-  
-  document.getElementById("status").innerText = "⚠️ エラー発生";
-  document.getElementById("debugLog").innerHTML = `<div class="error-msg">${msg}</div>`;
+let msg = "";
+switch(err.code) {
+case 1: msg = "位置情報の利用が許可されていません。\nブラウザの設定を確認してください。"; break;
+case 2: msg = "電波状況が悪く、位置が特定できませんでした。\n窓際や屋外で試してください。"; break;
+case 3: msg = "タイムアウトしました。\n（制限時間内に位置が見つかりませんでした）"; break;
+default: msg = "不明なエラー: " + err.message;
+}
+
+document.getElementById("status").innerText = "⚠️ エラー発生";
+document.getElementById("debugLog").innerHTML = `<div class="error-msg">${msg}</div>`;
 }
 
 function updateList() {
-  const list = document.getElementById("spotList");
-  list.innerHTML = "";
-  spots.forEach(spot => {
-    const li = document.createElement("li");
-    li.className = "spot-item " + (spot.cleared ? "cleared" : "");
-    li.innerText = spot.cleared ? `✅ ${spot.name}` : `⬜ ${spot.name}`;
-    list.appendChild(li);
-  });
+const list = document.getElementById("spotList");
+list.innerHTML = "";
+spots.forEach(spot => {
+const li = document.createElement("li");
+li.className = "spot-item " + (spot.cleared ? "cleared" : "");
+li.innerText = spot.cleared ? `✅ ${spot.name}` : `⬜ ${spot.name}`;
+list.appendChild(li);
+});
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+const R = 6371000;
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLon = (lon2 - lon1) * Math.PI / 180;
+const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+Math.sin(dLon / 2) * Math.sin(dLon / 2);
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+return R * c;
 }
 </script>
 
