@@ -1,193 +1,236 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PDKVP2');</script>
+<!-- End Google Tag Manager -->
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>スタンプラリー堅牢版</title>
+<title>スタンプラリー</title>
 <style>
-body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f0f8ff; }
-.card { background: white; padding: 20px; margin: 10px auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 400px; }
-h1 { color: #333; }
-button { font-size: 1.2em; padding: 10px 20px; background-color: #ff6347; color: white; border: none; border-radius: 5px; cursor: pointer; }
-button:disabled { background-color: #ccc; cursor: not-allowed; }
+    /* リストのスタイル */
+    @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
+    body {
+        font-family: 'Kosugi Maru', sans-serif;
+        padding-top: 50px; /* ヘッダーの高さと同じ値を指定 */
+        background-color: #FFEEAA; /* 背景色を黄色に設定 */
+    }
+    #spotsList {
+        padding-left: 40px;
+    }
+    #spotsList li {
+        list-style-type: decimal;
+        color: black;
+        line-height:1.5;
+    }
+    #tourButton,#completeButton{
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        color: #fff;
+        background-color: #ffa500;
+        border: 2px solid #ffa500;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        font-size:18pt;
+        background-color: #f8f8f8; /* 固定ヘッダーの背景色 */
+        padding: 15px 0;
+        text-align:center;
+        margin:0;
+        background-color: #d2b48c; /* ベージュの背景色 */
+        z-index: 1000; /* 他の要素よりも前面に表示するための z-index */
+    }
 
-#status { margin-top: 20px; font-weight: bold; min-height: 1.5em; line-height: 1.6; }
-.error-msg { color: red; font-size: 0.9em; margin-top: 10px; background: #ffe6e6; padding: 10px; border-radius: 5px; }
-
-/* 距離表示 */
-.distance-info { color: #007bff; font-size: 1.1em; margin-top: 5px; }
-.success-msg { color: red; font-size: 1.2em; font-weight: bold; animation: pop 0.5s ease; }
-@keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1.0); } }
-
-.revision { font-size: 10px; color: #aaa; margin-top: 20px; }
 </style>
 </head>
 <body>
+    <h1>スタンプラリー</h1>
+    <!-- ツアー開始/中断ボタン -->
+    <p>全スポットをまわろう✔ 全て周るとご褒美メッセージが聴けるﾓﾋﾟよ。ブラウザは閉じないでね。</p>
+    <button id="tourButton" onclick="toggleTour()">声ツアーを開始する</button>
+    <!-- スポットリスト -->
+    <ol id="spotsList"></ol>
+    <!-- 現在位置情報表示 -->
+    <p id="currentLocation">歩きスマホはしないでね。</p>
+    <!-- 完了メッセージ -->
+    <p id="completionMessage" style="display: none;">全てのスポットを回りました！</p>
+    <!-- 完了ボタン -->
+    <button id="completeButton" style="display: none;" onclick="showGoal()">終了メッセージを聴く</button>
+    <!-- ゴール画像 -->
+    <p><img id="goalImage" style="display: none;" src="goal.jpg" alt="ゴール画像"></p>
 
-<div class="card">
-<h1>🗺️ 音声スタンプラリー</h1>
-<p>あと何mで到着するか<br>ナビゲーションします</p>
+    <script>
+        // ★ スポット情報（緯度経度と名称）
+        var spots = [
+            { coords: { latitude: 35.83811637793212, longitude: 139.58617637479145 }, name: "スタート", audioPlayed: false, spotVisited: false },
+            { coords: { latitude: 35.838335914614504, longitude: 139.5867462139805 }, name: "最初のかど", audioPlayed: false, spotVisited: false },
+            { coords: { latitude: 35.83843484941769, longitude: 139.5869058055804 }, name: "トヨタ自動車", audioPlayed: false, spotVisited: false },
+            { coords: { latitude: 35.84012647191605, longitude: 139.58517646464583 }, name: "２個目の歩道橋", audioPlayed: false, spotVisited: false },
+            { coords: { latitude: 35.83997240695551, longitude: 139.5850793605516 }, name: "ゴール", audioPlayed: false, spotVisited: false }
+        ];
 
-<button id="btnStart" onclick="startTour()">ツアーを開始</button>
+        // オーディオ要素の初期化 ★ スポット数に合わせたMP3を用意
+　　　　//（例：スポット数が3箇所なら、0.mp3、1.mp3、2.mp3、と goal.mp3、bgm.mp3）
+        var audio = new Audio();
+        var bgm = new Audio("bgm.mp3");
+        bgm.loop = true; // BGMをループ再生
+        var goalAudio = new Audio("goal.mp3");
 
-<div id="status">ボタンを押してください</div>
-<div id="debugLog"></div>
-</div>
+        // メッセージと画像の初期化　★ goal.jpgを用意
+        var completeMessage = "声ツアーが完了しました。";
+        var goalImageSrc = "goal.jpg";
 
-<div class="card">
-<h3>スタンプカード</h3>
-<ul id="spotList" class="spot-list">
-</ul>
-<p class="revision">バージョン8 (Robust GPS)</p>
-</div>
+        // ツアーの状態を管理する変数
+        var tourStarted = false;
+        var watchID = null;
+        var lastPlayedSpotIndex = null;
+        var completedSpots = [];
+        var spotVisited = [];
+        var targetRadius = 10; // ★ スポット中心からの半径
 
-<script>
-// ★音声ファイルの準備★
-const soundEffect = new Audio('spot1.mp3');
+        // スポット番号.mp3 をプリロード
+        spots.forEach(function(spot, index) {
+            var spotAudio = new Audio(index + ".mp3");
+            spotAudio.load();
+        });
 
-// ★設定エリア★
-const spots = [
-// 1. 指定のテスト地点
-{ name: "① テスト地点", lat: 34.5546558593015, lng: 34.5546558593015, 134.99852599515893, cleared: false },
+        // スポット一覧表示
+            var spotsList = document.getElementById("spotsList");
+            spotsList.innerHTML = ""; // リストをクリア
 
-// 2. 北にある架空のスポット
-{ name: "② 北のスポット", lat: 34.8344, lng: 134.6934, cleared: false }
-];
+            spots.forEach(function(spot, index) {
+                var spotElement = document.createElement("li");
+                spotElement.id = "spot_" + index;
+                spotElement.innerText = spot.name;
+                spotsList.appendChild(spotElement);
+            });
 
-const RADIUS = 50; // 半径50m
-let watchId = null; // GPS監視ID
+        // ツアーの開始/中断を切り替える関数
+        function toggleTour() {
+            if (!tourStarted) {
+                startTour();
+                tourStarted = true;
+                document.getElementById("tourButton").innerText = "中断する";
+            } else {
+                stopTour();
+                tourStarted = false;
+                document.getElementById("tourButton").innerText = "声ツアーを開始する";
+            }
+        }
 
-function startTour() {
-if (!navigator.geolocation) {
-alert("この端末はGPS非対応です");
-return;
-}
+        // ツアーを開始する関数
+        function startTour() {
+            bgm.play();
+            displaySpots(); // スポットリストを表示
+            watchID = navigator.geolocation.watchPosition(updateCurrentLocation, handleError, { enableHighAccuracy: true });
+        }
 
-// ボタンを一時的に無効化
-const btn = document.getElementById("btnStart");
-btn.disabled = true;
-btn.innerText = "起動中...";
+        // ツアーを中断する関数
+        function stopTour() {
+            bgm.pause();
+            navigator.geolocation.clearWatch(watchID);
+            audio.pause();
+        }
 
-// 音声アンロック
-soundEffect.play().then(() => {
-soundEffect.pause();
-soundEffect.currentTime = 0;
-}).catch(e => {
-// エラーでも止まらないようにする
-console.log("Audio unlock failed", e);
-});
+        // スポット情報をリスト表示
+        function displaySpots() {
+            var spotsList = document.getElementById("spotsList");
+            spotsList.innerHTML = ""; // リストをクリア
 
-document.getElementById("status").innerText = "📡 GPS信号を探しています...";
-document.getElementById("debugLog").innerHTML = ""; // エラー消去
+            spots.forEach(function(spot, index) {
+                var spotElement = document.createElement("li");
+                spotElement.id = "spot_" + index;
+                spotElement.innerText = spotVisited ? "✔ " + spot.name : spot.name;
+                spotsList.appendChild(spotElement);
+            });
+        }
 
-// 以前の監視があればクリア
-if (watchId !== null) {
-navigator.geolocation.clearWatch(watchId);
-}
+        // 現在位置情報を更新する関数
+        function updateCurrentLocation(position) {
+            var currentCoords = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
 
-// GPS開始（オプションを緩めてタイムアウトしにくく設定）
-watchId = navigator.geolocation.watchPosition(success, error, {
-enableHighAccuracy: true, // 高精度
-timeout: 30000, // ★変更：30秒待つ（以前は10秒）
-maximumAge: 5000 // ★変更：5秒以内の古いデータも許容
-});
+            // 現在位置情報を表示
+            document.getElementById("currentLocation").innerText = "現在の緯度経度: " + currentCoords.latitude.toFixed(6) + ", " + currentCoords.longitude.toFixed(6);
 
-updateList();
-}
+            // 各スポットの距離を計算して表示
+            spots.forEach(function(spot, index) {
+                var distance = calculateDistance(currentCoords, spot.coords);
+                var spotElement = document.getElementById("spot_" + index);
+                var spotName = spot.spotVisited ? "✔ " + spot.name : spot.name;
 
-function success(position) {
-// 成功したらボタンを「再起動」表記に戻して押せるようにする
-const btn = document.getElementById("btnStart");
-btn.innerText = "GPS再起動";
-btn.disabled = false;
+                // スポットに近づいたら再生
+                if (distance <= targetRadius && !spot.audioPlayed) {
+                    var spotAudio = new Audio(index + ".mp3");
+                    spotAudio.play();
+                    spot.audioPlayed = true;
+                    spot.spotVisited = true; // スポットを訪れたとマーク
+                    completedSpots.push(index); // スポットを完了として追加
+                }
 
-const currentLat = position.coords.latitude;
-const currentLng = position.coords.longitude;
-const accuracy = position.coords.accuracy; // 誤差(m)
+                // スポット名と残り距離を表示
+                spotElement.innerText = spotName + " (残り: " + distance.toFixed(2) + "m)";
+            });
 
-// 1. 各スポットとの距離計算
-let nearestDist = Infinity;
-let nearestName = "";
-let isJustCleared = false;
+            // すべてのスポットが再生されたらコンプリートメッセージを表示
+            if (completedSpots.length === spots.length) {
+                document.getElementById("completionMessage").style.display = "block";
+                document.getElementById("completeButton").style.display = "block";
+            }
+        }
 
-spots.forEach((spot) => {
-if (spot.cleared) return;
+        // 2点間の距離を計算する関数
+        function calculateDistance(coords1, coords2) {
+            var R = 6371e3; // 地球の半径 (m)
+            var lat1 = coords1.latitude * Math.PI / 180; // 緯度1 (ラジアン)
+            var lat2 = coords2.latitude * Math.PI / 180; // 緯度2 (ラジアン)
+            var dLat = (coords2.latitude - coords1.latitude) * Math.PI / 180; // 緯度の差 (ラジアン)
+            var dLon = (coords2.longitude - coords1.longitude) * Math.PI / 180; // 経度の差 (ラジアン)
 
-const dist = getDistance(currentLat, currentLng, spot.lat, spot.lng);
-const distToArea = dist - RADIUS;
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-if (distToArea <= 0) {
-spot.cleared = true;
-isJustCleared = true;
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-soundEffect.currentTime = 0;
-soundEffect.play().catch(e => console.log(e));
+            var distance = R * c; // 2点間の距離 (m)
+            return distance;
+        }
 
-document.getElementById("status").innerHTML =
-`<div class='success-msg'>🎉 ${spot.name}<br>スタンプゲット！</div>`;
+        // エラーハンドリング
+        function handleError(error) {
+            console.log('位置情報の取得中にエラーが発生しました:', error.message);
+        }
 
-updateList();
-} else {
-if (distToArea < nearestDist) {
-nearestDist = distToArea;
-nearestName = spot.name;
-}
-}
-});
+        // 完了メッセージを表示する関数
+        function showGoal() {
+            document.getElementById("goalImage").style.display = "block";
+            goalAudio.play();
+            bgm.loop = false; // BGMをループ停止
+        }
+    </script>
 
-// 2. 画面表示
-if (!isJustCleared) {
-let statusHTML = `📍 現在地 (誤差±${Math.floor(accuracy)}m)<br><span style="font-size:0.8em">${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}</span>`;
-
-if (nearestName !== "") {
-statusHTML += `<div class="distance-info">🏃‍♂️ 次の ${nearestName} まで<br>あと <b>${Math.ceil(nearestDist)}m</b></div>`;
-} else {
-statusHTML += `<div class="distance-info">🎉 全スポットコンプリート！</div>`;
-}
-
-document.getElementById("status").innerHTML = statusHTML;
-}
-}
-
-function error(err) {
-const btn = document.getElementById("btnStart");
-btn.innerText = "再試行する";
-btn.disabled = false;
-
-let msg = "";
-switch(err.code) {
-case 1: msg = "位置情報の利用が許可されていません。\nブラウザの設定を確認してください。"; break;
-case 2: msg = "電波状況が悪く、位置が特定できませんでした。\n窓際や屋外で試してください。"; break;
-case 3: msg = "タイムアウトしました。\n（制限時間内に位置が見つかりませんでした）"; break;
-default: msg = "不明なエラー: " + err.message;
-}
-
-document.getElementById("status").innerText = "⚠️ エラー発生";
-document.getElementById("debugLog").innerHTML = `<div class="error-msg">${msg}</div>`;
-}
-
-function updateList() {
-const list = document.getElementById("spotList");
-list.innerHTML = "";
-spots.forEach(spot => {
-const li = document.createElement("li");
-li.className = "spot-item " + (spot.cleared ? "cleared" : "");
-li.innerText = spot.cleared ? `✅ ${spot.name}` : `⬜ ${spot.name}`;
-list.appendChild(li);
-});
-}
-
-function getDistance(lat1, lon1, lat2, lon2) {
-const R = 6371000;
-const dLat = (lat2 - lat1) * Math.PI / 180;
-const dLon = (lon2 - lon1) * Math.PI / 180;
-const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-Math.sin(dLon / 2) * Math.sin(dLon / 2);
-const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-return R * c;
-}
-</script>
+<p>　</p>
+<p>　</p>
+<hr>
+<p><a rel="nofollow" href="/panpan/trace.html"><strong>謎解き</strong></a>　|<a rel="nofollow" href="/panpan/index.html"><strong>トップ</strong></a>　|<a rel="nofollow" href="/panpan/map.html"><strong>判定</strong></a>　|<a rel="nofollow" href="/panpan/record.html"><strong>記録</strong></a>　|<a rel="nofollow" href="/panpan/geo.html"><strong>試験</strong></a>　|<a rel="nofollow" href="/panpan/kappa.html"><strong>かっぱ</strong></a>　|<a rel="nofollow" href="/panpan/stamprally.html"><strong>スタンプ</strong></a></p>
 
 </body>
 </html>
